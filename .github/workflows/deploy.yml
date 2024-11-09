@@ -1,0 +1,46 @@
+name: Deploy
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  test_and_deploy:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.1'
+
+#      - name: Run tests
+#        env:
+#          GEOIP_TOKEN: ${{ secrets.GEOIP_TOKEN }}
+#        run: go test ./...
+
+      - name: Build application
+        if: success()
+        run: env GOOS=linux GOARCH=amd64 go build -o whoisCheck cmd/whois/main.go
+
+      - name: Add SSH key
+        if: success()
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy application
+        if: success()
+        env:
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
+        run: |
+#          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl stop whoisCheck"
+          scp -o StrictHostKeyChecking=no whoisCheck $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR
+#          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "sudo systemctl start whoisCheck"
