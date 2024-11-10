@@ -11,7 +11,7 @@ type Site struct {
 	Date time.Time
 }
 
-func Check(hosts []string, ch chan<- Site) {
+func GetInfo(hosts []string, ch chan<- Site) {
 	defer close(ch)
 
 	for _, host := range hosts {
